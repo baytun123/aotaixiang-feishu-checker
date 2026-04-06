@@ -1,0 +1,8 @@
+{
+  "app_id": "cli_a94657a12e785bef",
+  "app_secret": "WkdaUXI3mK6gHEkPG4zLWRav7MbNSzDH",
+  "table_id": "IfjDbTm0taVdnTsIQVscLVR6nFg/tblFgjLfovuQR6e2",
+  "claude_api_base": "https://cloud.hongqiye.com",
+  "claude_api_key": "sk-6uvjtSSt8vZlJ4SByF9ciuCohRq4IUCMWs0FPW3qsYdQkHcc",
+  "claude_model": "claude-opus-4-5-20251101"
+}
