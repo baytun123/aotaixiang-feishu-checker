@@ -210,44 +210,53 @@ def index():
     })
 
 
-@app.route('/webhook/check', methods=['POST'])
-def webhook_check():
-    """接收飞书自动化webhook"""
-    try:
-        data = request.json
+ @app.route('/webhook/check', methods=['POST'])
+  def webhook_check():
+      """接收飞书自动化webhook"""
+      try:
+          data = request.json
+          original_copy = data.get('original_copy')
+          content_type = data.get('content_type', '通用')
 
-        # 获取记录信息
-        record_id = data.get('record_id')
-        original_copy = data.get('original_copy')
-        content_type = data.get('content_type', '通用')
+          if not original_copy:
+              return jsonify({"success": False, "error": "缺少原文案参数"}), 400
 
-        if not record_id or not original_copy:
-            return jsonify({
-                "success": False,
-                "error": "缺少必要参数"
-            }), 400
+          print(f"\n📋 收到检查请求（通过原文案查找）")
 
-        print(f"\n📋 收到检查请求：记录ID={record_id}")
+          # 通过原文案查找记录ID
+          def async_process():
+              try:
+                  token = handler.get_tenant_access_token()
+                  app_token, table_id = handler.table_id.split('/')
 
-        # 异步处理（避免飞书超时）
-        def async_process():
-            handler.process_record(record_id, original_copy, content_type)
+                  url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{app_
+  token}/tables/{table_id}/records"
+                  headers = {"Authorization": f"Bearer {token}", "Content-Type":
+   "application/json"}
+                  response = requests.get(url, headers=headers,
+  params={"page_size": 100})
+                  records_data = response.json()
 
-        import threading
-        thread = threading.Thread(target=async_process)
-        thread.start()
+                  if records_data.get("code") == 0:
+                      records = records_data.get("data", {}).get("items", [])
+                      for record in records:
+                          if record.get("fields", {}).get("原文案") ==
+  original_copy:
+                              record_id = record.get("record_id")
+                              handler.process_record(record_id, original_copy,
+  content_type)
+                              break
+              except Exception as e:
+                  print(f"❌ 处理错误：{str(e)}")
 
-        return jsonify({
-            "success": True,
-            "message": "正在处理中，请稍候查看结果"
-        })
+          import threading
+          thread = threading.Thread(target=async_process)
+          thread.start()
 
-    except Exception as e:
-        print(f"❌ Webhook处理错误：{str(e)}")
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+          return jsonify({"success": True, "message": "正在处理中"})
+
+      except Exception as e:
+          return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route('/health', methods=['GET'])
